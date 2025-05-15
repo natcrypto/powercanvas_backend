@@ -8,6 +8,8 @@ CORS(app) # Enable CORS for all routes, allowing requests from the React fronten
 
 # Set the OpenAI API key from an environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
+print(f"Loaded OpenAI key: {openai.api_key[:5]}...")  # Just print the first few characters
+
 
 @app.route("/api/generate-ai-insights", methods=["POST"])
 def generate_ai_insights():
