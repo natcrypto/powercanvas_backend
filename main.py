@@ -92,6 +92,14 @@ Insights:"""
         app.logger.error(f"Error in /api/generate-ai-insights: {str(e)}")
         return jsonify({"error": "An unexpected error occurred on the server.", "details": str(e)}), 500
 
+@app.route("/debug/env")
+def debug_env():
+    key = os.getenv("OPENAI_API_KEY")
+    if key:
+        return f"✅ OPENAI_API_KEY is set. Starts with: {key[:5]}..."
+    else:
+        return "❌ OPENAI_API_KEY is NOT set"
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
 
