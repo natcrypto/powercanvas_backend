@@ -1,19 +1,23 @@
 from flask import Flask, request, jsonify
 import os
-import openai
+from openai import OpenAI  # Updated import
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app) # Enable CORS for all routes, allowing requests from the React frontend
+CORS(app)  # Enable CORS for all routes, allowing requests from the React frontend
 
-# Set the OpenAI API key from an environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
-print(f"Loaded OpenAI key: {openai.api_key[:5]}...")  # Just print the first few characters
+# Initialize the OpenAI client with API key from environment variable
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+if api_key:
+    print(f"Loaded OpenAI key: {api_key[:5]}...")  # Just print the first few characters
+else:
+    print("WARNING: OpenAI API key not set!")
 
 
 @app.route("/api/generate-ai-insights", methods=["POST"])
 def generate_ai_insights():
-    if not openai.api_key:
+    if not os.getenv("OPENAI_API_KEY"):
         return jsonify({"error": "OpenAI API key not configured. Please set the OPENAI_API_KEY environment variable."}), 500
 
     try:
@@ -53,7 +57,8 @@ Avoid generic or repetitive phrases. Ground your insights in the specific roles 
 Insights:"""
 
             try:
-                response = openai.ChatCompletion.create(
+                # Updated API call using the new client-based approach
+                response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are an expert in organisational design and systems thinking."},
@@ -64,8 +69,10 @@ Insights:"""
                     n=1,
                     stop=None
                 )
-                if response["choices"] and response["choices"][0]["message"] and response["choices"][0]["message"]["content"]:
-                    generated_text = response["choices"][0]["message"]["content"].strip()
+                
+                # Updated response handling for the new API structure
+                if response.choices and len(response.choices) > 0:
+                    generated_text = response.choices[0].message.content.strip()
                     insights_list = [insight.strip().lstrip("- ").lstrip("* ").lstrip("• ") for insight in generated_text.split("\n") if insight.strip()]
                     all_generated_insights.append({
                         "decisionAreaName": area_name,
@@ -92,6 +99,7 @@ Insights:"""
         app.logger.error(f"Error in /api/generate-ai-insights: {str(e)}")
         return jsonify({"error": "An unexpected error occurred on the server.", "details": str(e)}), 500
 
+
 @app.route("/debug/env")
 def debug_env():
     key = os.getenv("OPENAI_API_KEY")
@@ -100,6 +108,6 @@ def debug_env():
     else:
         return "❌ OPENAI_API_KEY is NOT set"
 
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
-
